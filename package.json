@@ -1,5 +1,9 @@
 {
+  "scripts": {
+    "start": "concurrently \"cd client && npm run dev\" \"cd server && npm run start\""
+  },
   "dependencies": {
-    "axios": "^1.12.2"
+    "axios": "^1.12.2",
+    "concurrently": "^8.2.2"
   }
 }
