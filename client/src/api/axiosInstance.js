@@ -24,8 +24,15 @@ const getServerPort = async () => {
 // Create axios instance with dynamic base URL
 const createAxiosInstance = async () => {
   const port = await getServerPort();
+  const baseURL = `http://localhost:${port}`;
+  console.log("🔍 DEBUG: Axios baseURL set to:", baseURL);
+  console.log(
+    "🔍 DEBUG: Environment VITE_API_URL:",
+    import.meta.env.VITE_API_URL
+  );
+  console.log("🔍 DEBUG: Current window location:", window.location.origin);
   return axios.create({
-    baseURL: `http://localhost:${port}`,
+    baseURL,
   });
 };
 
