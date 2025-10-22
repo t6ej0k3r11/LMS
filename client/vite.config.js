@@ -14,4 +14,15 @@ export default defineConfig({
     },
   },
   base: process.env.VITE_BASE_PATH || "/LMS",
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom"],
+          vendor: ["axios", "react-router-dom"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 });
