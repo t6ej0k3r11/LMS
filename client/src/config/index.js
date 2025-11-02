@@ -25,6 +25,7 @@ export const signUpFormControls = [
     placeholder: "Enter your password",
     type: "password",
     componentType: "input",
+    showStrengthIndicator: true,
   },
   {
     name: "role",

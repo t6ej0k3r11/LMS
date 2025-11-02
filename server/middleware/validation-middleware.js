@@ -174,16 +174,7 @@ const validateQuizSubmission = [
     .isMongoId()
     .withMessage("Valid question ID is required"),
 
-  body("answers.*.selectedAnswer")
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage("Selected answer must be a non-negative integer"),
-
-  body("answers.*.textAnswer")
-    .optional()
-    .trim()
-    .isLength({ max: 1000 })
-    .withMessage("Text answer must not exceed 1000 characters"),
+  body("answers.*.answer").exists().withMessage("Answer is required"),
 
   handleValidationErrors,
 ];

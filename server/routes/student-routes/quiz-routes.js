@@ -6,15 +6,16 @@ const {
   submitQuizAttempt,
   getQuizResults,
 } = require("../../controllers/student-controller/quiz-controller");
-const authenticate = require("../../middleware/auth-middleware");
+const { authenticate, authorize } = require("../../middleware/auth-middleware");
 const {
   validateQuizSubmission,
 } = require("../../middleware/validation-middleware");
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticate.authenticate);
+// Apply authentication and student authorization to all routes
+router.use(authenticate);
+router.use(authorize("student"));
 
 // GET /course/:courseId - get available quizzes
 router.get("/course/:courseId", getQuizzesByCourse);

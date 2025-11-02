@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const CourseProgress = require("../../models/CourseProgress");
 const Course = require("../../models/Course");
 const StudentCourses = require("../../models/StudentCourses");
@@ -11,7 +12,7 @@ const checkRequiredQuizzesCompleted = async (progress, courseId) => {
 
   const allFinalQuizzesPassed = finalQuizzes.every((quiz) => {
     const quizProg = progress.quizzesProgress.find(
-      (qp) => qp.quizId === quiz._id.toString()
+      (qp) => qp.quizId.toString() === quiz._id.toString()
     );
     return quizProg && quizProg.completed;
   });
@@ -182,8 +183,8 @@ const updateQuizProgress = async (req, res) => {
       });
     }
 
-    const quizProgress = progress.quizzesProgress.find(
-      (item) => item.quizId === quizId
+    const quizProgress = progress.quizzesProgress.find((item) =>
+      item.quizId.equals(quizId)
     );
 
     if (quizProgress) {

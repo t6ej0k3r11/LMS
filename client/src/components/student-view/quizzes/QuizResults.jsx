@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StudentContext } from "@/context/student-context";
 import { CheckCircle, XCircle, RotateCcw } from "lucide-react";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getQuizResultsService } from "@/services";
 
@@ -17,9 +17,9 @@ function QuizResults() {
 
   useEffect(() => {
     fetchResults();
-  }, [quizId]);
+  }, [fetchResults]);
 
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
       // First check if we have results in context
@@ -37,7 +37,7 @@ function QuizResults() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId, studentQuizProgress]);
 
   const handleRetakeQuiz = () => {
     navigate(`/student/quiz-player/${quizId}`);
@@ -55,7 +55,7 @@ function QuizResults() {
     return <div className="text-center py-8">No results found.</div>;
   }
 
-  const { score, passed, answers, quiz } = results;
+  const { score, passed, answers, quiz } = results || {};
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -89,9 +89,9 @@ function QuizResults() {
             </div>
             <div>
               <div className="text-lg font-semibold">
-                {answers?.filter(a => a.isCorrect).length || 0} / {answers?.length || 0}
+                {answers?.filter(a => a.isCorrect === true).length || 0} / {answers?.filter(a => a.isCorrect !== null).length || 0}
               </div>
-              <div className="text-sm text-gray-600">Correct Answers</div>
+              <div className="text-sm text-gray-600">Auto-Graded Correct</div>
             </div>
           </div>
         </CardContent>
@@ -107,8 +107,20 @@ function QuizResults() {
               <div key={index} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-medium">Question {index + 1}</h4>
-                  <Badge variant={answer.isCorrect ? "default" : "destructive"}>
-                    {answer.isCorrect ? "Correct" : "Incorrect"}
+                  <Badge
+                    variant={
+                      answer.needsReview
+                        ? "secondary"
+                        : answer.isCorrect
+                        ? "default"
+                        : "destructive"
+                    }
+                  >
+                    {answer.needsReview
+                      ? "Pending Review"
+                      : answer.isCorrect
+                      ? "Correct"
+                      : "Incorrect"}
                   </Badge>
                 </div>
                 <div className="text-sm text-gray-700 mb-2">
@@ -117,11 +129,15 @@ function QuizResults() {
                 <div className="text-sm">
                   <span className="font-medium">Your answer:</span> {answer.userAnswer || "Not answered"}
                 </div>
-                {!answer.isCorrect && (
+                {answer.needsReview ? (
+                  <div className="text-sm text-orange-600">
+                    <span className="font-medium">Status:</span> Awaiting instructor review
+                  </div>
+                ) : !answer.isCorrect ? (
                   <div className="text-sm text-green-600">
                     <span className="font-medium">Correct answer:</span> {answer.correctAnswer}
                   </div>
-                )}
+                ) : null}
               </div>
             ))}
           </CardContent>

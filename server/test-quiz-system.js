@@ -15,6 +15,12 @@ let instructorToken = "";
 let testCourseId = "";
 let testQuizId = "";
 let testAttemptId = "";
+let testQuizAutoOnlyId = "";
+let testQuizMixedId = "";
+let testQuizBroadTextOnlyId = "";
+let testAttemptAutoOnlyId = "";
+let testAttemptMixedId = "";
+let testAttemptBroadTextOnlyId = "";
 
 // Test data
 const TEST_INSTRUCTOR = {
@@ -51,9 +57,9 @@ const TEST_COURSE = {
   isPublished: true,
 };
 
-const TEST_QUIZ = {
-  title: "Test Quiz",
-  description: "A test quiz to validate functionality",
+const TEST_QUIZ_AUTO_ONLY = {
+  title: "Auto-Gradable Only Quiz",
+  description: "Quiz with only auto-gradable questions",
   courseId: "", // Will be set after course creation
   quizType: "final",
   questions: [
@@ -62,7 +68,7 @@ const TEST_QUIZ = {
       question: "What is the capital of France?",
       options: ["London", "Berlin", "Paris", "Madrid"],
       correctAnswer: "2",
-      points: 1,
+      points: 2,
       requiresReview: false,
     },
     {
@@ -80,6 +86,61 @@ const TEST_QUIZ = {
       correctAnswer: "0",
       points: 1,
       requiresReview: false,
+    },
+  ],
+  timeLimit: 30,
+  passingScore: 70,
+  attemptsAllowed: 3,
+  createdBy: "", // Will be set after instructor login
+};
+
+const TEST_QUIZ_MIXED = {
+  title: "Mixed Quiz",
+  description: "Quiz with auto-gradable and broad-text questions",
+  courseId: "", // Will be set after course creation
+  quizType: "final",
+  questions: [
+    {
+      type: "multiple-choice",
+      question: "What is the capital of France?",
+      options: ["London", "Berlin", "Paris", "Madrid"],
+      correctAnswer: "2",
+      points: 2,
+      requiresReview: false,
+    },
+    {
+      type: "broad-text",
+      question: "Explain the concept of recursion in programming.",
+      options: [],
+      points: 3,
+      requiresReview: true,
+    },
+  ],
+  timeLimit: 30,
+  passingScore: 60,
+  attemptsAllowed: 3,
+  createdBy: "", // Will be set after instructor login
+};
+
+const TEST_QUIZ_BROAD_TEXT_ONLY = {
+  title: "Broad Text Only Quiz",
+  description: "Quiz with only broad-text questions",
+  courseId: "", // Will be set after course creation
+  quizType: "final",
+  questions: [
+    {
+      type: "broad-text",
+      question: "Describe the water cycle in detail.",
+      options: [],
+      points: 5,
+      requiresReview: true,
+    },
+    {
+      type: "broad-text",
+      question: "Explain how photosynthesis works.",
+      options: [],
+      points: 5,
+      requiresReview: true,
     },
   ],
   timeLimit: 30,
@@ -167,7 +228,9 @@ async function testInstructorLogin() {
   if (result.success) {
     instructorToken = result.data.data.accessToken;
     TEST_COURSE.instructorId = result.data.data.user._id;
-    TEST_QUIZ.createdBy = result.data.data.user._id;
+    TEST_QUIZ_AUTO_ONLY.createdBy = result.data.data.user._id;
+    TEST_QUIZ_MIXED.createdBy = result.data.data.user._id;
+    TEST_QUIZ_BROAD_TEXT_ONLY.createdBy = result.data.data.user._id;
     log("Instructor login successful, token obtained");
   }
   log("Instructor login result:", result);
@@ -184,7 +247,9 @@ async function testCourseCreation() {
   );
   if (result.success) {
     testCourseId = result.data.data._id;
-    TEST_QUIZ.courseId = testCourseId;
+    TEST_QUIZ_AUTO_ONLY.courseId = testCourseId;
+    TEST_QUIZ_MIXED.courseId = testCourseId;
+    TEST_QUIZ_BROAD_TEXT_ONLY.courseId = testCourseId;
     log(`Course created with ID: ${testCourseId}`);
   }
   log("Course creation result:", result);
@@ -236,18 +301,59 @@ async function testCourseEnrollment() {
 
 async function testQuizCreation() {
   log("Testing quiz creation...");
-  const result = await makeRequest(
+
+  // Create auto-only quiz
+  const autoOnlyResult = await makeRequest(
     "POST",
     "/instructor/quiz/create",
-    TEST_QUIZ,
+    TEST_QUIZ_AUTO_ONLY,
     instructorToken
   );
-  if (result.success) {
-    testQuizId = result.data.data._id;
-    log(`Quiz created with ID: ${testQuizId}`);
+  if (autoOnlyResult.success) {
+    testQuizAutoOnlyId = autoOnlyResult.data.data._id;
+    log(`Auto-only quiz created with ID: ${testQuizAutoOnlyId}`);
+  } else {
+    log("Auto-only quiz creation failed:", autoOnlyResult.error);
   }
-  log("Quiz creation result:", result);
-  return result.success;
+
+  // Create mixed quiz
+  const mixedResult = await makeRequest(
+    "POST",
+    "/instructor/quiz/create",
+    TEST_QUIZ_MIXED,
+    instructorToken
+  );
+  if (mixedResult.success) {
+    testQuizMixedId = mixedResult.data.data._id;
+    log(`Mixed quiz created with ID: ${testQuizMixedId}`);
+  } else {
+    log("Mixed quiz creation failed:", mixedResult.error);
+  }
+
+  // Create broad-text only quiz
+  const broadTextOnlyResult = await makeRequest(
+    "POST",
+    "/instructor/quiz/create",
+    TEST_QUIZ_BROAD_TEXT_ONLY,
+    instructorToken
+  );
+  if (broadTextOnlyResult.success) {
+    testQuizBroadTextOnlyId = broadTextOnlyResult.data.data._id;
+    log(`Broad-text only quiz created with ID: ${testQuizBroadTextOnlyId}`);
+  } else {
+    log("Broad-text only quiz creation failed:", broadTextOnlyResult.error);
+  }
+
+  const allSuccess =
+    autoOnlyResult.success &&
+    mixedResult.success &&
+    broadTextOnlyResult.success;
+  log("Quiz creation results:", {
+    autoOnlyResult: autoOnlyResult.success,
+    mixedResult: mixedResult.success,
+    broadTextOnlyResult: broadTextOnlyResult.success,
+  });
+  return allSuccess;
 }
 
 async function testQuizRetrieval() {
@@ -259,76 +365,258 @@ async function testQuizRetrieval() {
     authToken
   );
   log("Quiz retrieval result:", result);
+  if (result.success) {
+    const quizzes = result.data.data;
+    log(`Retrieved ${quizzes.length} quizzes for the course`);
+    // Should have 3 quizzes now
+    if (quizzes.length !== 3) {
+      log(`❌ ERROR: Expected 3 quizzes, got ${quizzes.length}`);
+      return false;
+    }
+  }
   return result.success;
 }
 
 async function testQuizAttemptStart() {
-  log("Testing quiz attempt start...");
-  const result = await makeRequest(
+  log("Testing quiz attempt starts...");
+
+  // Start auto-only quiz attempt
+  const autoOnlyResult = await makeRequest(
     "POST",
-    `/student/quiz/${testQuizId}/attempt`,
+    `/student/quiz/${testQuizAutoOnlyId}/attempt`,
     {},
     authToken
   );
-  if (result.success) {
-    testAttemptId = result.data.data.attemptId;
-    log(`Quiz attempt started with ID: ${testAttemptId}`);
+  if (autoOnlyResult.success) {
+    testAttemptAutoOnlyId = autoOnlyResult.data.data.attemptId;
+    log(`Auto-only quiz attempt started with ID: ${testAttemptAutoOnlyId}`);
   }
-  log("Quiz attempt start result:", result);
-  return result.success;
+
+  // Start mixed quiz attempt
+  const mixedResult = await makeRequest(
+    "POST",
+    `/student/quiz/${testQuizMixedId}/attempt`,
+    {},
+    authToken
+  );
+  if (mixedResult.success) {
+    testAttemptMixedId = mixedResult.data.data.attemptId;
+    log(`Mixed quiz attempt started with ID: ${testAttemptMixedId}`);
+  }
+
+  // Start broad-text only quiz attempt
+  const broadTextOnlyResult = await makeRequest(
+    "POST",
+    `/student/quiz/${testQuizBroadTextOnlyId}/attempt`,
+    {},
+    authToken
+  );
+  if (broadTextOnlyResult.success) {
+    testAttemptBroadTextOnlyId = broadTextOnlyResult.data.data.attemptId;
+    log(
+      `Broad-text only quiz attempt started with ID: ${testAttemptBroadTextOnlyId}`
+    );
+  }
+
+  const allSuccess =
+    autoOnlyResult.success &&
+    mixedResult.success &&
+    broadTextOnlyResult.success;
+  log("Quiz attempt start results:", {
+    autoOnlyResult,
+    mixedResult,
+    broadTextOnlyResult,
+  });
+  return allSuccess;
 }
 
-async function testQuizSubmission() {
-  log("Testing quiz submission...");
+async function testQuizSubmissionAutoOnly() {
+  log("Testing auto-only quiz submission...");
 
-  // Check if attemptId is available
-  if (!testAttemptId) {
-    log(
-      "❌ ERROR: testAttemptId is empty or undefined. Cannot proceed with quiz submission."
-    );
+  if (!testAttemptAutoOnlyId) {
+    log("❌ ERROR: testAttemptAutoOnlyId is empty or undefined.");
     return false;
   }
 
   // Get the actual question IDs from the quiz
   const quizResponse = await makeRequest(
     "GET",
-    `/student/quiz/${testQuizId}`,
+    `/student/quiz/${testQuizAutoOnlyId}`,
     null,
     authToken
   );
 
   if (!quizResponse.success) {
-    log("Failed to get quiz details for question IDs");
+    log("Failed to get auto-only quiz details");
     return false;
   }
 
   const questionIds = quizResponse.data.data.quiz.questions.map((q) => q._id);
 
+  // All correct answers for 100% score
   const answers = [
-    { questionId: questionIds[0], selectedAnswer: 2 }, // Correct answer for first question
-    { questionId: questionIds[1], selectedAnswer: 0 }, // Correct answer for second question
-    { questionId: questionIds[2], selectedAnswer: [0, 2] }, // Correct answer for third question
+    { questionId: questionIds[0], answer: "2" }, // Correct
+    { questionId: questionIds[1], answer: "0" }, // Correct
+    { questionId: questionIds[2], answer: "0" }, // Correct
   ];
 
   const result = await makeRequest(
     "PUT",
-    `/student/quiz/${testQuizId}/attempt/${testAttemptId}`,
+    `/student/quiz/${testQuizAutoOnlyId}/attempt/${testAttemptAutoOnlyId}`,
     { answers },
     authToken
   );
-  log("Quiz submission result:", result);
+  log("Auto-only quiz submission result:", result);
   return result.success;
 }
 
-async function testQuizResults() {
-  log("Testing quiz results retrieval...");
-  const result = await makeRequest(
+async function testQuizSubmissionMixed() {
+  log("Testing mixed quiz submission...");
+
+  if (!testAttemptMixedId) {
+    log("❌ ERROR: testAttemptMixedId is empty or undefined.");
+    return false;
+  }
+
+  // Get the actual question IDs from the quiz
+  const quizResponse = await makeRequest(
     "GET",
-    `/student/quiz/${testQuizId}/results`,
+    `/student/quiz/${testQuizMixedId}`,
     null,
     authToken
   );
-  log("Quiz results result:", result);
+
+  if (!quizResponse.success) {
+    log("Failed to get mixed quiz details");
+    return false;
+  }
+
+  const questionIds = quizResponse.data.data.quiz.questions.map((q) => q._id);
+
+  // One correct auto-gradable, one broad-text
+  const answers = [
+    { questionId: questionIds[0], answer: "2" }, // Correct multiple-choice
+    {
+      questionId: questionIds[1],
+      answer: "This is my explanation of recursion...",
+    }, // Broad-text
+  ];
+
+  const result = await makeRequest(
+    "PUT",
+    `/student/quiz/${testQuizMixedId}/attempt/${testAttemptMixedId}`,
+    { answers },
+    authToken
+  );
+  log("Mixed quiz submission result:", result);
+  return result.success;
+}
+
+async function testQuizSubmissionBroadTextOnly() {
+  log("Testing broad-text only quiz submission...");
+
+  if (!testAttemptBroadTextOnlyId) {
+    log("❌ ERROR: testAttemptBroadTextOnlyId is empty or undefined.");
+    return false;
+  }
+
+  // Get the actual question IDs from the quiz
+  const quizResponse = await makeRequest(
+    "GET",
+    `/student/quiz/${testQuizBroadTextOnlyId}`,
+    null,
+    authToken
+  );
+
+  if (!quizResponse.success) {
+    log("Failed to get broad-text only quiz details");
+    return false;
+  }
+
+  const questionIds = quizResponse.data.data.quiz.questions.map((q) => q._id);
+
+  // Two broad-text answers
+  const answers = [
+    { questionId: questionIds[0], answer: "The water cycle explanation..." },
+    { questionId: questionIds[1], answer: "Photosynthesis explanation..." },
+  ];
+
+  const result = await makeRequest(
+    "PUT",
+    `/student/quiz/${testQuizBroadTextOnlyId}/attempt/${testAttemptBroadTextOnlyId}`,
+    { answers },
+    authToken
+  );
+  log("Broad-text only quiz submission result:", result);
+  return result.success;
+}
+
+async function testQuizResultsAutoOnly() {
+  log("Testing auto-only quiz results retrieval...");
+  const result = await makeRequest(
+    "GET",
+    `/student/quiz/${testQuizAutoOnlyId}/results`,
+    null,
+    authToken
+  );
+  log("Auto-only quiz results:", result);
+  if (result.success) {
+    const score = result.data.score;
+    const passed = result.data.passed;
+    log(`Auto-only quiz - Score: ${score}%, Passed: ${passed}`);
+    // Should be 100% since all answers were correct
+    if (score !== 100) {
+      log("❌ ERROR: Expected 100% score for auto-only quiz");
+      return false;
+    }
+  }
+  return result.success;
+}
+
+async function testQuizResultsMixed() {
+  log("Testing mixed quiz results retrieval...");
+  const result = await makeRequest(
+    "GET",
+    `/student/quiz/${testQuizMixedId}/results`,
+    null,
+    authToken
+  );
+  log("Mixed quiz results:", result);
+  if (result.success) {
+    const score = result.data.score;
+    const passed = result.data.passed;
+    log(`Mixed quiz - Score: ${score}%, Passed: ${passed}`);
+    // Should be 40% (2/5 points from auto-gradable question only)
+    const expectedScore = Math.round((2 / 2) * 100); // 2 points out of 2 auto-gradable points
+    if (score !== expectedScore) {
+      log(
+        `❌ ERROR: Expected ${expectedScore}% score for mixed quiz, got ${score}%`
+      );
+      return false;
+    }
+  }
+  return result.success;
+}
+
+async function testQuizResultsBroadTextOnly() {
+  log("Testing broad-text only quiz results retrieval...");
+  const result = await makeRequest(
+    "GET",
+    `/student/quiz/${testQuizBroadTextOnlyId}/results`,
+    null,
+    authToken
+  );
+  log("Broad-text only quiz results:", result);
+  if (result.success) {
+    const score = result.data.score;
+    const passed = result.data.passed;
+    log(`Broad-text only quiz - Score: ${score}%, Passed: ${passed}`);
+    // Should be 0% since no auto-gradable questions
+    if (score !== 0) {
+      log("❌ ERROR: Expected 0% score for broad-text only quiz");
+      return false;
+    }
+  }
   return result.success;
 }
 
@@ -382,9 +670,88 @@ async function testErrorHandling() {
   );
 }
 
+// Test instructor review process
+async function testInstructorReview() {
+  log("Testing instructor review process...");
+
+  // Get unreviewed answers
+  const unreviewedResult = await makeRequest(
+    "GET",
+    "/instructor/quiz/unreviewed-answers",
+    null,
+    instructorToken
+  );
+  log("Unreviewed answers result:", unreviewedResult);
+
+  if (!unreviewedResult.success || unreviewedResult.data.data.length === 0) {
+    log("❌ ERROR: No unreviewed answers found");
+    return false;
+  }
+
+  // Find the mixed quiz attempt
+  const mixedAttempt = unreviewedResult.data.data.find(
+    (attempt) => attempt.quizId._id.toString() === testQuizMixedId
+  );
+
+  if (!mixedAttempt) {
+    log("❌ ERROR: Mixed quiz attempt not found in unreviewed answers");
+    return false;
+  }
+
+  // Find the broad-text answer in the mixed attempt
+  const broadTextAnswer = mixedAttempt.answers.find(
+    (answer) => answer.needsReview === true
+  );
+
+  if (!broadTextAnswer) {
+    log("❌ ERROR: Broad-text answer not found");
+    return false;
+  }
+
+  // Review the broad-text answer (give full points)
+  const reviewData = {
+    pointsEarned: 3, // Full points for the broad-text question
+    reviewNotes: "Good explanation of recursion concepts.",
+  };
+
+  const reviewResult = await makeRequest(
+    "PUT",
+    `/instructor/quiz/review-answer/${mixedAttempt._id}/${broadTextAnswer.questionId}`,
+    reviewData,
+    instructorToken
+  );
+  log("Review result:", reviewResult);
+
+  if (!reviewResult.success) {
+    return false;
+  }
+
+  // Check updated results
+  const updatedResults = await makeRequest(
+    "GET",
+    `/student/quiz/${testQuizMixedId}/results`,
+    null,
+    authToken
+  );
+  log("Updated mixed quiz results after review:", updatedResults);
+
+  if (updatedResults.success) {
+    const score = updatedResults.data.score;
+    const passed = updatedResults.data.passed;
+    log(`Mixed quiz after review - Score: ${score}%, Passed: ${passed}`);
+    // Should now be 100% (2 auto-gradable + 3 broad-text = 5/5 points)
+    if (score !== 100) {
+      log(`❌ ERROR: Expected 100% score after review, got ${score}%`);
+      return false;
+    }
+  }
+
+  return updatedResults.success;
+}
+
 // Main test execution
 async function runTests() {
-  console.log("🚀 Starting Quiz System End-to-End Tests\n");
+  console.log("🚀 Starting Quiz Scoring Fix Validation Tests\n");
 
   const results = {
     userRegistration: await testUserRegistration(),
@@ -396,8 +763,13 @@ async function runTests() {
     quizCreation: await testQuizCreation(),
     quizRetrieval: await testQuizRetrieval(),
     quizAttemptStart: await testQuizAttemptStart(),
-    quizSubmission: await testQuizSubmission(),
-    quizResults: await testQuizResults(),
+    quizSubmissionAutoOnly: await testQuizSubmissionAutoOnly(),
+    quizSubmissionMixed: await testQuizSubmissionMixed(),
+    quizSubmissionBroadTextOnly: await testQuizSubmissionBroadTextOnly(),
+    quizResultsAutoOnly: await testQuizResultsAutoOnly(),
+    quizResultsMixed: await testQuizResultsMixed(),
+    quizResultsBroadTextOnly: await testQuizResultsBroadTextOnly(),
+    instructorReview: await testInstructorReview(),
     securityFeatures: await testSecurityFeatures(),
     errorHandling: await testErrorHandling(),
   };
@@ -425,7 +797,9 @@ async function runTests() {
   );
 
   if (failed === 0) {
-    console.log("\n🎉 All tests passed! Quiz system is working correctly.");
+    console.log(
+      "\n🎉 All tests passed! Quiz scoring fix is working correctly."
+    );
   } else {
     console.log(
       `\n⚠️ ${failed} test(s) failed. Please review the issues above.`

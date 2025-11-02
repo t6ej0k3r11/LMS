@@ -130,8 +130,8 @@ function QuizForm() {
         alert(`Please enter question text for question ${i + 1}`);
         return;
       }
-      // Broad text questions don't require correctAnswer to be filled
-      if (question.type !== "broad-text" && !question.correctAnswer.trim()) {
+      // Broad text, short answer, and essay questions don't require correctAnswer to be filled
+      if (question.type !== "broad-text" && question.type !== "short-answer" && question.type !== "essay" && !question.correctAnswer.trim()) {
         alert(`Please provide a correct answer for question ${i + 1}`);
         return;
       }
@@ -150,6 +150,10 @@ function QuizForm() {
         timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : null,
         passingScore: parseInt(formData.passingScore),
         attemptsAllowed: parseInt(formData.attemptsAllowed),
+        questions: formData.questions.map(question => ({
+          ...question,
+          type: question.type === "short-answer" || question.type === "essay" ? "broad-text" : question.type,
+        })),
       };
 
       let response;
@@ -231,7 +235,7 @@ function QuizForm() {
                       ))
                     ) : (
                       <SelectItem value="" disabled>
-                        No lectures available
+                        No lectures available. Please add lectures to your course first.
                       </SelectItem>
                     )}
                   </SelectContent>

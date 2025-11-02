@@ -29,15 +29,16 @@ function QuestionBuilder({ questions, setQuestions }) {
     ]);
   };
 
+
   const updateQuestion = (index, field, value) => {
     const updatedQuestions = [...questions];
     updatedQuestions[index][field] = value;
 
     // Set requiresReview based on question type
     if (field === "type") {
-      updatedQuestions[index].requiresReview = value === "broad-text";
-      // Clear options for broad-text questions
-      if (value === "broad-text") {
+      updatedQuestions[index].requiresReview = value === "broad-text" || value === "short-answer" || value === "essay";
+      // Clear options for broad-text, short-answer, and essay questions
+      if (value === "broad-text" || value === "short-answer" || value === "essay") {
         updatedQuestions[index].options = [];
         updatedQuestions[index].correctAnswerIndex = null;
         updatedQuestions[index].correctAnswer = "";
@@ -174,9 +175,9 @@ function QuestionBuilder({ questions, setQuestions }) {
               placeholder="Enter sample answer or key points"
               rows={3}
             />
-            {question.type === "broad-text" && (
+            {(question.type === "broad-text" || question.type === "short-answer" || question.type === "essay") && (
               <div className="text-sm text-gray-600">
-                Note: Broad text questions will require manual review by the instructor.
+                Note: {question.type === "broad-text" ? "Broad text" : question.type === "short-answer" ? "Short answer" : "Essay"} questions will require manual review by the instructor.
               </div>
             )}
           </div>

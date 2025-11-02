@@ -1,5 +1,8 @@
 const Quiz = require("../../models/Quiz");
 const QuizAttempt = require("../../models/QuizAttempt");
+const {
+  updateQuizProgress,
+} = require("../student-controller/course-progress-controller");
 
 const createQuiz = async (req, res) => {
   try {
@@ -256,6 +259,19 @@ const reviewBroadTextAnswer = async (req, res) => {
     attempt.passed = passed;
 
     await attempt.save();
+
+    // Update course progress if the quiz is now passed
+    if (passed) {
+      await updateQuizProgress({
+        body: {
+          userId: attempt.studentId,
+          courseId: attempt.quizId.courseId,
+          quizId: attempt.quizId._id,
+          score,
+          passed,
+        },
+      });
+    }
 
     res.status(200).json({
       success: true,

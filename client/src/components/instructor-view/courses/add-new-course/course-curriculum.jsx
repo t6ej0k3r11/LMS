@@ -61,17 +61,48 @@ function CourseCurriculum() {
   async function handleSingleLectureUpload(event, currentIndex) {
     const selectedFile = event.target.files[0];
 
+    console.log("DEBUG: Starting single video upload");
+    console.log("DEBUG: Selected file:", {
+      name: selectedFile?.name,
+      size: selectedFile?.size,
+      type: selectedFile?.type,
+      sizeMB: selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(2) : null
+    });
+
     if (selectedFile) {
+      // Validate file size (100MB limit)
+      const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+      console.log("DEBUG: Client-side validation - maxSize:", maxSize, "fileSize:", selectedFile.size);
+      if (selectedFile.size > maxSize) {
+        console.log("DEBUG: File size validation failed on client");
+        alert("File size exceeds 100MB limit. Please choose a smaller file.");
+        return;
+      }
+
+      // Validate file type
+      const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+      console.log("DEBUG: Client-side validation - allowedTypes:", allowedTypes, "fileType:", selectedFile.type);
+      if (!allowedTypes.includes(selectedFile.type)) {
+        console.log("DEBUG: File type validation failed on client");
+        alert("Please select a valid video file (MP4, WebM, or OGV).");
+        return;
+      }
+
       const videoFormData = new FormData();
       videoFormData.append("file", selectedFile);
+      console.log("DEBUG: FormData created with file");
 
       try {
+        console.log("DEBUG: Calling mediaUploadService");
         setMediaUploadProgress(true);
         const response = await mediaUploadService(
           videoFormData,
           setMediaUploadProgressPercentage
         );
+        console.log("DEBUG: mediaUploadService response:", response);
+
         if (response.success) {
+          console.log("DEBUG: Upload successful, updating form data");
           let cpyCourseCurriculumFormData = [...courseCurriculumFormData];
           cpyCourseCurriculumFormData[currentIndex] = {
             ...cpyCourseCurriculumFormData[currentIndex],
@@ -80,10 +111,29 @@ function CourseCurriculum() {
           };
           setCourseCurriculumFormData(cpyCourseCurriculumFormData);
           setMediaUploadProgress(false);
+        } else {
+          console.log("DEBUG: Upload failed - response.success is false");
+          console.log("DEBUG: Response details:", response);
+          alert("Upload failed. Please try again.");
         }
       } catch (error) {
-        console.log(error);
+        console.error("DEBUG: Error uploading video:", error);
+        console.error("DEBUG: Error details:", {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers
+          }
+        });
+        alert("Failed to upload video. Please check your connection and try again.");
+        setMediaUploadProgress(false);
       }
+    } else {
+      console.log("DEBUG: No file selected");
     }
   }
 
@@ -135,8 +185,23 @@ function CourseCurriculum() {
 
   async function handleMediaBulkUpload(event) {
     const selectedFiles = Array.from(event.target.files);
-    const bulkFormData = new FormData();
 
+    // Validate files
+    const maxSize = 100 * 1024 * 1024; // 100MB per file
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+
+    for (const file of selectedFiles) {
+      if (file.size > maxSize) {
+        alert(`File "${file.name}" exceeds 100MB limit. Please choose smaller files.`);
+        return;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        alert(`File "${file.name}" is not a supported video format. Please use MP4, WebM, or OGV.`);
+        return;
+      }
+    }
+
+    const bulkFormData = new FormData();
     selectedFiles.forEach((fileItem) => bulkFormData.append("files", fileItem));
 
     try {
@@ -166,9 +231,14 @@ function CourseCurriculum() {
         ];
         setCourseCurriculumFormData(cpyCourseCurriculumFormdata);
         setMediaUploadProgress(false);
+      } else {
+        alert("Bulk upload failed. Please try again.");
+        setMediaUploadProgress(false);
       }
     } catch (e) {
-      console.log(e);
+      console.error("Error in bulk upload:", e);
+      alert("Failed to upload videos. Please check your connection and try again.");
+      setMediaUploadProgress(false);
     }
   }
 
@@ -284,14 +354,21 @@ function CourseCurriculum() {
                         </div>
                       </div>
                 ) : (
-                  <Input
-                    type="file"
-                    accept="video/*"
-                    onChange={(event) =>
-                      handleSingleLectureUpload(event, index)
-                    }
-                    className="mb-4"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor={`video-upload-${index}`}>Upload Video</Label>
+                    <Input
+                      id={`video-upload-${index}`}
+                      type="file"
+                      accept="video/*"
+                      onChange={(event) =>
+                        handleSingleLectureUpload(event, index)
+                      }
+                      className="mb-4"
+                    />
+                    <p className="text-sm text-gray-500">
+                      Supported formats: MP4, WebM, OGV. Maximum file size: 100MB.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

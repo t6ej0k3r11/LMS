@@ -10,13 +10,33 @@ const getQuizzesByCourse = async (req, res) => {
     const { courseId } = req.params;
     const studentId = req.user?._id;
 
+    console.log(
+      "🔍 DEBUG: getQuizzesByCourse - courseId:",
+      courseId,
+      "studentId:",
+      studentId,
+      "type:",
+      typeof studentId
+    );
+
     // Check if student has purchased the course
     const studentCourses = await StudentCourses.findOne({
       userId: studentId,
       "courses.courseId": courseId,
     });
 
+    console.log(
+      "🔍 DEBUG: StudentCourses.findOne result:",
+      studentCourses ? "found" : "null"
+    );
+
     if (!studentCourses) {
+      console.log(
+        "🔍 DEBUG: Access denied - no course found for studentId:",
+        studentId,
+        "courseId:",
+        courseId
+      );
       return res.status(403).json({
         success: false,
         message: "Access denied. Course not purchased.",
@@ -104,7 +124,22 @@ const getQuizById = async (req, res) => {
       "courses.courseId": quiz.courseId,
     });
 
+    console.log(
+      "🔍 DEBUG: startQuizAttempt - studentCourses result:",
+      studentCourses ? "found" : "null",
+      "studentId:",
+      studentId,
+      "quiz.courseId:",
+      quiz.courseId
+    );
+
     if (!studentCourses) {
+      console.log(
+        "🔍 DEBUG: Access denied - no course found for studentId:",
+        studentId,
+        "courseId:",
+        quiz.courseId
+      );
       return res.status(403).json({
         success: false,
         message: "Access denied. Course not purchased.",
@@ -201,7 +236,22 @@ const startQuizAttempt = async (req, res) => {
       "courses.courseId": quiz.courseId,
     });
 
+    console.log(
+      "🔍 DEBUG: getQuizById - studentCourses result:",
+      studentCourses ? "found" : "null",
+      "studentId:",
+      studentId,
+      "quiz.courseId:",
+      quiz.courseId
+    );
+
     if (!studentCourses) {
+      console.log(
+        "🔍 DEBUG: Access denied - no course found for studentId:",
+        studentId,
+        "courseId:",
+        quiz.courseId
+      );
       return res.status(403).json({
         success: false,
         message: "Access denied. Course not purchased.",
@@ -283,38 +333,107 @@ const startQuizAttempt = async (req, res) => {
 
 const submitQuizAttempt = async (req, res) => {
   try {
-    console.log(
-      "🔍 DEBUG: submitQuizAttempt called with quizId:",
-      quizId,
-      "attemptId:",
-      attemptId
-    );
     const { quizId, attemptId } = req.params;
     const { answers } = req.body; // Array of { questionId, answer }
     const studentId = req.user._id;
 
-    const quiz = await Quiz.findById(quizId);
-    const attempt = await QuizAttempt.findById(attemptId);
+    if (!quizId || !attemptId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid parameters",
+      });
+    }
 
-    if (!quiz || !attempt) {
+    console.log(
+      "🔍 DEBUG: submitQuizAttempt called with quizId:",
+      quizId,
+      "attemptId:",
+      attemptId,
+      "studentId:",
+      studentId,
+      "answers count:",
+      answers?.length || 0
+    );
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      console.log("🔍 DEBUG: Quiz not found for quizId:", quizId);
       return res.status(404).json({
         success: false,
-        message: "Quiz or attempt not found!",
+        message: "Quiz not found!",
+      });
+    }
+
+    // Check if student has purchased the course
+
+    const studentCourses = await StudentCourses.findOne({
+      userId: studentId,
+      "courses.courseId": quiz.courseId,
+    });
+
+    console.log(
+      "🔍 DEBUG: submitQuizAttempt - studentCourses result:",
+      studentCourses ? "found" : "null",
+      "studentId:",
+      studentId,
+      "quiz.courseId:",
+      quiz.courseId
+    );
+
+    if (!studentCourses) {
+      console.log(
+        "🔍 DEBUG: Access denied - no course found for studentId:",
+        studentId,
+        "courseId:",
+        quiz.courseId
+      );
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Course not purchased.",
+      });
+    }
+
+    const attempt = await QuizAttempt.findById(attemptId);
+
+    console.log("🔍 DEBUG: Attempt found:", !!attempt);
+    if (!attempt) {
+      console.log("🔍 DEBUG: Attempt not found - attemptId:", attemptId);
+      return res.status(404).json({
+        success: false,
+        message: "Attempt not found!",
       });
     }
 
     // Verify ownership
+    console.log(
+      "🔍 DEBUG: Verifying ownership - attempt.studentId:",
+      attempt.studentId?.toString(),
+      "studentId:",
+      studentId,
+      "attempt.quizId:",
+      attempt.quizId?.toString(),
+      "quizId:",
+      quizId
+    );
     if (
       attempt.studentId.toString() !== studentId ||
       attempt.quizId.toString() !== quizId
     ) {
+      console.log("🔍 DEBUG: Ownership verification failed");
       return res.status(403).json({
         success: false,
         message: "Access denied.",
       });
     }
+    console.log("🔍 DEBUG: Ownership verified successfully");
 
     // Check if already completed with atomic operation to prevent race conditions
+    console.log(
+      "🔍 DEBUG: Checking if attempt is already completed - attemptId:",
+      attemptId,
+      "current status:",
+      attempt.status
+    );
     const updateResult = await QuizAttempt.findOneAndUpdate(
       {
         _id: attemptId,
@@ -328,7 +447,9 @@ const submitQuizAttempt = async (req, res) => {
       { new: true }
     );
 
+    console.log("🔍 DEBUG: Atomic update result:", !!updateResult);
     if (!updateResult) {
+      console.log("🔍 DEBUG: Attempt already submitted or processing");
       return res.status(400).json({
         success: false,
         message: "Attempt already submitted or processing.",
@@ -338,8 +459,22 @@ const submitQuizAttempt = async (req, res) => {
     const completedAt = new Date();
     const timeSpent = Math.floor((completedAt - attempt.startedAt) / 1000); // in seconds
 
+    console.log(
+      "🔍 DEBUG: Time calculation - startedAt:",
+      attempt.startedAt,
+      "completedAt:",
+      completedAt,
+      "timeSpent:",
+      timeSpent,
+      "timeLimit:",
+      quiz.timeLimit
+    );
+
     // Check time limit
     if (quiz.timeLimit && timeSpent > quiz.timeLimit * 60) {
+      console.log(
+        "🔍 DEBUG: Time limit exceeded - resetting status to in_progress"
+      );
       // Reset status if time limit exceeded
       await QuizAttempt.findByIdAndUpdate(attemptId, { status: "in_progress" });
       return res.status(400).json({
@@ -349,11 +484,24 @@ const submitQuizAttempt = async (req, res) => {
     }
 
     // Calculate score
+    console.log(
+      "🔍 DEBUG: Starting score calculation - answers length:",
+      answers?.length || 0
+    );
     let pointsEarned = 0;
     const processedAnswers = answers
       .map((answer) => {
         const question = quiz.questions.id(answer.questionId);
-        if (!question) return null;
+        console.log(
+          "🔍 DEBUG: Processing answer for questionId:",
+          answer.questionId,
+          "question found:",
+          !!question
+        );
+        if (!question) {
+          console.log("🔍 DEBUG: Question not found for answer:", answer);
+          return null;
+        }
 
         let isCorrect = null;
         let points = 0;
@@ -367,6 +515,14 @@ const submitQuizAttempt = async (req, res) => {
           isCorrect = question.correctAnswer === answer.answer;
           points = isCorrect ? question.points : 0;
           pointsEarned += points;
+          console.log(
+            "🔍 DEBUG: Question marked - type:",
+            question.type,
+            "isCorrect:",
+            isCorrect,
+            "points:",
+            points
+          );
         }
 
         return {
@@ -379,17 +535,49 @@ const submitQuizAttempt = async (req, res) => {
       })
       .filter(Boolean);
 
+    console.log(
+      "🔍 DEBUG: Score calculation complete - processedAnswers:",
+      processedAnswers.length,
+      "pointsEarned:",
+      pointsEarned
+    );
+
     const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
-    // For quizzes with broad-text questions, score might be incomplete until review
+    // Calculate total points from auto-gradable questions only
+    const totalAutoGradablePoints = quiz.questions
+      .filter((q) => q.type !== "broad-text")
+      .reduce((sum, q) => sum + q.points, 0);
+    console.log(
+      "🔍 DEBUG: Final calculations - totalPoints:",
+      totalPoints,
+      "totalAutoGradablePoints:",
+      totalAutoGradablePoints,
+      "pointsEarned:",
+      pointsEarned
+    );
+    // For quizzes with broad-text questions, score is based only on auto-gradable questions
     const hasUnreviewedQuestions = processedAnswers.some(
       (answer) => answer.needsReview
     );
-    const score = hasUnreviewedQuestions
-      ? 0
-      : Math.round((pointsEarned / totalPoints) * 100);
+    const score =
+      totalAutoGradablePoints > 0
+        ? Math.round((pointsEarned / totalAutoGradablePoints) * 100)
+        : 0;
     const passed = hasUnreviewedQuestions ? false : score >= quiz.passingScore;
 
+    console.log(
+      "🔍 DEBUG: Final results - hasUnreviewedQuestions:",
+      hasUnreviewedQuestions,
+      "score:",
+      score,
+      "passed:",
+      passed,
+      "passingScore:",
+      quiz.passingScore
+    );
+
     // Update attempt atomically
+    console.log("🔍 DEBUG: Updating attempt with final results");
     await QuizAttempt.findByIdAndUpdate(attemptId, {
       answers: processedAnswers,
       score,
@@ -399,8 +587,10 @@ const submitQuizAttempt = async (req, res) => {
       timeSpent,
       status: "completed",
     });
+    console.log("🔍 DEBUG: Attempt updated successfully");
 
     // Update quiz progress in course progress
+    console.log("🔍 DEBUG: Updating quiz progress in course progress");
     try {
       await updateQuizProgress(
         {
@@ -416,11 +606,13 @@ const submitQuizAttempt = async (req, res) => {
           status: () => ({ json: () => {} }),
         }
       );
+      console.log("🔍 DEBUG: Quiz progress updated successfully");
     } catch (progressError) {
-      console.log("Error updating quiz progress:", progressError);
+      console.log("🔍 DEBUG: Error updating quiz progress:", progressError);
       // Don't fail the quiz submission if progress update fails
     }
 
+    console.log("🔍 DEBUG: Quiz submission successful - returning response");
     res.status(200).json({
       success: true,
       message: "Quiz submitted successfully",
@@ -433,7 +625,8 @@ const submitQuizAttempt = async (req, res) => {
       },
     });
   } catch (e) {
-    console.error("Error starting quiz attempt:", e);
+    console.error("🔍 DEBUG: Error in submitQuizAttempt:", e);
+    console.error("🔍 DEBUG: Error stack:", e.stack);
     res.status(500).json({
       success: false,
       message: "Some error occurred!",
@@ -469,7 +662,22 @@ const getQuizResults = async (req, res) => {
       "courses.courseId": quiz.courseId,
     });
 
+    console.log(
+      "🔍 DEBUG: getQuizResults - studentCourses result:",
+      studentCourses ? "found" : "null",
+      "studentId:",
+      studentId,
+      "quiz.courseId:",
+      quiz.courseId
+    );
+
     if (!studentCourses) {
+      console.log(
+        "🔍 DEBUG: Access denied - no course found for studentId:",
+        studentId,
+        "courseId:",
+        quiz.courseId
+      );
       return res.status(403).json({
         success: false,
         message: "Access denied. Course not purchased.",
@@ -481,6 +689,26 @@ const getQuizResults = async (req, res) => {
       studentId,
     }).sort({ attemptNumber: 1 });
 
+    // Get the latest attempt for detailed results
+    const latestAttempt = attempts[attempts.length - 1];
+
+    let answers = [];
+    if (latestAttempt) {
+      // Build answers array with question details
+      answers = latestAttempt.answers.map((answer) => {
+        const question = quiz.questions.id(answer.questionId);
+        return {
+          questionId: answer.questionId,
+          question: question?.question || "Question not found",
+          userAnswer: answer.answer,
+          isCorrect: answer.isCorrect,
+          correctAnswer: question?.correctAnswer || "",
+          pointsEarned: answer.pointsEarned || 0,
+          needsReview: answer.needsReview || false,
+        };
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -489,6 +717,9 @@ const getQuizResults = async (req, res) => {
           passingScore: quiz.passingScore,
           attemptsAllowed: quiz.attemptsAllowed,
         },
+        score: latestAttempt?.score || 0,
+        passed: latestAttempt?.passed || false,
+        answers: answers,
         attempts: attempts.map((attempt) => ({
           attemptNumber: attempt.attemptNumber,
           score: attempt.score,

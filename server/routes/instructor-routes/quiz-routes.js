@@ -21,11 +21,11 @@ router.use(authenticate.authenticate);
 
 router.post("/create", validateQuizCreation, createQuiz);
 router.get("/course/:courseId", getQuizzesByCourse);
+router.get("/unreviewed-answers", getUnreviewedAnswers);
 router.get("/:quizId", getQuizById);
 router.put("/:quizId", validateQuizCreation, updateQuiz);
 router.delete("/:quizId", deleteQuiz);
 router.get("/:quizId/results", getQuizResults);
 router.put("/review/:attemptId/question/:questionId", reviewBroadTextAnswer);
-router.get("/unreviewed-answers", getUnreviewedAnswers);
 
 module.exports = router;

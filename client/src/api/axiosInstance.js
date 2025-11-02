@@ -177,13 +177,5 @@ const createAxiosInstance = async () => {
   }
 };
 
-// Export a function that returns the instance
-const getAxiosInstance = async () => {
-  if (!axiosInstance) {
-    await createAxiosInstance();
-  }
-  return axiosInstance;
-};
-
-// Export the instance getter as default
-export default getAxiosInstance;
+// Export the function that returns the promise resolving to the instance
+export default createAxiosInstance;
