@@ -283,6 +283,12 @@ const startQuizAttempt = async (req, res) => {
 
 const submitQuizAttempt = async (req, res) => {
   try {
+    console.log(
+      "🔍 DEBUG: submitQuizAttempt called with quizId:",
+      quizId,
+      "attemptId:",
+      attemptId
+    );
     const { quizId, attemptId } = req.params;
     const { answers } = req.body; // Array of { questionId, answer }
     const studentId = req.user._id;

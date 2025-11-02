@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
   userName: {
     type: String,
     required: true,
+    unique: true,
     trim: true,
     minlength: 3,
     maxlength: 50,
@@ -23,7 +24,7 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
-    minlength: 6,
+    minlength: 8,
   },
   role: {
     type: String,
@@ -33,8 +34,8 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Add indexes for frequently queried fields
-UserSchema.index({ userEmail: 1 });
 UserSchema.index({ role: 1 });
+UserSchema.index({ userName: 1 });
 
 // Pre-save middleware to hash password
 UserSchema.pre("save", async function (next) {

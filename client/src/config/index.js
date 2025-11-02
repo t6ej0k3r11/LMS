@@ -1,6 +1,6 @@
 export const roleOptions = [
   { id: "instructor", label: "Instructor" },
-  { id: "user", label: "Student" },
+  { id: "student", label: "Student" },
 ];
 
 export const signUpFormControls = [
@@ -10,6 +10,7 @@ export const signUpFormControls = [
     placeholder: "Enter your user name",
     type: "text",
     componentType: "input",
+    showUsernameValidation: true,
   },
   {
     name: "userEmail",
@@ -49,6 +50,7 @@ export const signInFormControls = [
     placeholder: "Enter your password",
     type: "password",
     componentType: "input",
+    showStrengthIndicator: true,
   },
 ];
 

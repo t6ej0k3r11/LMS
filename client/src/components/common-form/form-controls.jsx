@@ -8,8 +8,10 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import PasswordStrengthIndicator from "../ui/password-strength-indicator";
+import UsernameValidationIndicator from "../ui/username-validation-indicator";
 
-function FormControls({ formControls = [], formData, setFormData }) {
+function FormControls({ formControls = [], formData, setFormData, fieldErrors = {} }) {
   function renderComponentByType(getControlItem) {
     let element = null;
     const currentControlItemValue = formData[getControlItem.name] || "";
@@ -17,19 +19,27 @@ function FormControls({ formControls = [], formData, setFormData }) {
     switch (getControlItem.componentType) {
       case "input":
         element = (
-          <Input
-            id={getControlItem.name}
-            name={getControlItem.name}
-            placeholder={getControlItem.placeholder}
-            type={getControlItem.type}
-            value={currentControlItemValue}
-            onChange={(event) =>
-              setFormData({
-                ...formData,
-                [getControlItem.name]: event.target.value,
-              })
-            }
-          />
+          <div>
+            <Input
+              id={getControlItem.name}
+              name={getControlItem.name}
+              placeholder={getControlItem.placeholder}
+              type={getControlItem.type}
+              value={currentControlItemValue}
+              onChange={(event) =>
+                setFormData({
+                  ...formData,
+                  [getControlItem.name]: event.target.value,
+                })
+              }
+            />
+            {getControlItem.type === "password" && getControlItem.showStrengthIndicator && (
+              <PasswordStrengthIndicator password={currentControlItemValue} />
+            )}
+            {getControlItem.name === "userName" && getControlItem.showUsernameValidation && (
+              <UsernameValidationIndicator username={currentControlItemValue} />
+            )}
+          </div>
         );
         break;
       case "select":
@@ -103,6 +113,9 @@ function FormControls({ formControls = [], formData, setFormData }) {
         <div key={controleItem.name}>
           <Label htmlFor={controleItem.name}>{controleItem.label}</Label>
           {renderComponentByType(controleItem)}
+          {fieldErrors[controleItem.name] && (
+            <p className="text-sm text-red-500 mt-1">{fieldErrors[controleItem.name]}</p>
+          )}
         </div>
       ))}
     </div>

@@ -3,6 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+// Debug: Check environment variables
+console.log("JWT_SECRET set:", !!process.env.JWT_SECRET);
+console.log("JWT_REFRESH_SECRET set:", !!process.env.JWT_REFRESH_SECRET);
+console.log("MONGO_URI set:", !!process.env.MONGO_URI);
+
 // Routes
 const authRoutes = require("./routes/auth-routes/index");
 const mediaRoutes = require("./routes/instructor-routes/media-routes");
@@ -29,11 +34,14 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("🔍 DEBUG: CORS request from origin:", origin);
-      console.log("🔍 DEBUG: Allowed origins:", [
+      console.log("CORS request from origin:", origin);
+      console.log("Allowed origins:", [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://localhost:5177",
+        "http://localhost:5178",
+        "https://lms-rho-swart.vercel.app",
       ]);
 
       // Allow requests with no origin (like mobile apps or curl requests)
@@ -43,13 +51,15 @@ app.use(
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://localhost:5177",
+        "http://localhost:5178",
         "https://lms-rho-swart.vercel.app",
       ];
 
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        console.log("❌ CORS BLOCKED: Origin not allowed:", origin);
+        console.log("CORS BLOCKED: Origin not allowed:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -64,6 +74,8 @@ app.use(
       "http://localhost:3000",
       "http://localhost:5173",
       "http://localhost:5174",
+      "http://localhost:5177",
+      "http://localhost:5178",
       "https://lms-rho-swart.vercel.app",
     ],
     methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],

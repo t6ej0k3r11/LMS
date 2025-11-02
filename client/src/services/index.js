@@ -1,19 +1,36 @@
 import axiosInstance from "@/api/axiosInstance";
 
 export async function registerService(formData) {
-  const { data } = await axiosInstance.post("/auth/register", formData);
+  const instance = await axiosInstance();
+  const { data } = await instance.post("/auth/register", formData);
 
   return data;
 }
 
 export async function loginService(formData) {
-  const { data } = await axiosInstance.post("/auth/login", formData);
+  const instance = await axiosInstance();
+  const { data } = await instance.post("/auth/login", formData);
 
   return data;
 }
 
 export async function checkAuthService() {
-  const { data } = await axiosInstance.get("/auth/check-auth");
+  const instance = await axiosInstance();
+  const { data } = await instance.get("/auth/check-auth");
+
+  return data;
+}
+
+export async function refreshTokenService() {
+  const refreshToken = sessionStorage.getItem("refreshToken");
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  const instance = await axiosInstance();
+  const { data } = await instance.post("/auth/refresh-token", {
+    refreshToken,
+  });
 
   return data;
 }

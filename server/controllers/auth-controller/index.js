@@ -4,14 +4,11 @@ const jwt = require("jsonwebtoken");
 const registerUser = async (req, res) => {
   const { userName, userEmail, password, role } = req.body;
 
-  // Password complexity validation
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (!passwordRegex.test(password)) {
+  // Check for missing required fields
+  if (!userName || !userEmail || !password || !role) {
     return res.status(400).json({
       success: false,
-      message:
-        "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      message: "All fields (userName, userEmail, password, role) are required",
     });
   }
 

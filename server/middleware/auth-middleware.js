@@ -61,7 +61,6 @@ const authorize = (...roles) => {
         message: "Insufficient permissions",
       });
     }
-
     next();
   };
 };
@@ -79,7 +78,7 @@ const authorizeOwnerOrAdmin = (resourceUserIdField = "userId") => {
     const resourceUserId =
       req.params[resourceUserIdField] || req.body[resourceUserIdField];
 
-    if (req.user.role === "instructor" || req.user.id === resourceUserId) {
+    if (req.user.role === "instructor" || req.user._id === resourceUserId) {
       return next();
     }
 

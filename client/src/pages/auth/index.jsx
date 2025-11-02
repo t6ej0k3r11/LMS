@@ -24,6 +24,8 @@ function AuthPage() {
     setSignUpFormData,
     handleRegisterUser,
     handleLoginUser,
+    signInFieldErrors,
+    signUpFieldErrors,
   } = useContext(AuthContext);
 
   function handleTabChange(value) {
@@ -39,7 +41,9 @@ function AuthPage() {
   }
 
   async function handleSignUpSubmit(event) {
+    console.log("🔍 DEBUG: handleSignUpSubmit called");
     const result = await handleRegisterUser(event);
+    console.log("🔍 DEBUG: handleRegisterUser result:", result);
     if (result.success) {
       toast({
         title: "Success",
@@ -47,6 +51,7 @@ function AuthPage() {
       });
       setActiveTab("signin");
     } else {
+      console.log("🔍 DEBUG: Registration failed, showing error toast");
       toast({
         title: "Error",
         description: result.message,
@@ -118,6 +123,7 @@ function AuthPage() {
                   setFormData={setSignInFormData}
                   isButtonDisabled={!checkIfSignInFormIsValid()}
                   handleSubmit={handleSignInSubmit}
+                  fieldErrors={signInFieldErrors}
                 />
               </CardContent>
             </Card>
@@ -129,6 +135,17 @@ function AuthPage() {
                 <CardDescription>
                   Enter your details to get started
                 </CardDescription>
+                <div className="text-sm text-gray-600 mt-2">
+                  <strong>Username Requirements:</strong>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>3-50 characters long</li>
+                    <li>Letters, numbers, and underscores only</li>
+                    <li>No spaces or special characters</li>
+                  </ul>
+                  <p className="mt-2 text-xs">
+                    Examples: user123, my_username, JohnDoe
+                  </p>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <CommonForm
@@ -138,6 +155,7 @@ function AuthPage() {
                   setFormData={setSignUpFormData}
                   isButtonDisabled={!checkIfSignUpFormIsValid()}
                   handleSubmit={handleSignUpSubmit}
+                  fieldErrors={signUpFieldErrors}
                 />
               </CardContent>
             </Card>
